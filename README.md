@@ -1,3 +1,3 @@
 # Project code
 
-clone 후 마음껏 사용하세요!
+아직 미완성 입니다!
