@@ -8,9 +8,11 @@ from datetime import datetime
 import pynecone as pc
 from pynecone.base import Base
 
+import os.path
+
 
 # openai.api_key = "<YOUR_OPENAI_API_KEY>"
-openai.api_key = "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"
+openai.api_key = open(os.path.dirname(__file__) + "/../../apikey.txt", "r").read()
 
 
 parallel_example = {
