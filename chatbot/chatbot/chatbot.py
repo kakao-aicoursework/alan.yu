@@ -62,8 +62,8 @@ class State(pc.State):
         self.text = ""
         yield
 
-        answer = chain.run(q)
-        print(f"A: {answer}")
+        answer = Message(chain.run(q), 0)
+        print(f"A: {answer.text}")
         self.messages += [answer]
 
     pass
