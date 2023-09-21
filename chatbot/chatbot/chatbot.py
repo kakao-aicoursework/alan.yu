@@ -9,6 +9,7 @@ from langchain.chains import LLMChain
 from langchain import LLMMathChain
 from langchain.document_loaders import TextLoader
 from langchain.chat_models import ChatOpenAI
+from chatbot import style
 
 import os
 
@@ -28,10 +29,14 @@ for d in document:
 
 prompt = PromptTemplate(
     input_variables=["q"],
-    template=doc + "를 참고해서 {q}"
+    template=f"""
+    {doc}
+    위 내용을 참고해서 아래 질문에 답변해줘. 
+    {{q}}
+    """
 )
 
-chain = LLMChain(llm=llm, prompt=prompt)
+chain = LLMChain(llm=llm, prompt=prompt, verbose=True)
 
 
 class Message(pc.Model):
@@ -60,7 +65,6 @@ class State(pc.State):
         m = Message(q, 1)
         self.messages += [m]
         self.text = ""
-        yield
 
         answer = Message(chain.run(q), 0)
         print(f"A: {answer.text}")
@@ -70,7 +74,11 @@ class State(pc.State):
 
 
 def render_message(m: Message):
-    return pc.box(m.text, text_align="right" if m.me == 1 else "left", width="100%")
+    return pc.box(m.text,
+                  text_align="right" if m.me == 1 else "left",
+                  style=style.question_style if m.me == 1 else style.answer_style,
+                  margin_y="1em"
+                  )
 
 
 def chat() -> pc.Component:
@@ -82,8 +90,8 @@ def chat() -> pc.Component:
 
 def action_bar() -> pc.Component:
     return pc.hstack(
-        pc.input(placeholder="text to send", on_blur=State.set_text),
-        pc.button("Send", on_click=State.send),
+        pc.input(placeholder="text to send", on_blur=State.set_text, style=style.input_style),
+        pc.button("Send", on_click=State.send, style=style.input_style),
     )
 
 
