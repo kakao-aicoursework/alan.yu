@@ -1,4 +1,4 @@
-Your job is to read the <message>, and tell me about it in korean.
+Your job is to read the <message>, and tell me about it in korean. And make sure your answer is correct.
 
 <message>
 {user_message}

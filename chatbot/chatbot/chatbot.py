@@ -56,8 +56,10 @@ def create_chain(llm, template_path, output_key):
 llm = ChatOpenAI(temperature=0.1, max_tokens=200, model="gpt-3.5-turbo")
 
 chain1 = create_chain(llm, os.path.join("prompts", "prompt_template1.txt"), "output")
+parse_intent_chain = create_chain(llm, os.path.join("prompts", "parse_intent.txt"), "intent")
 search_value_check_chain = create_chain(llm, os.path.join("prompts", "search_value_check.txt"), "output")
 search_compression_chain = create_chain(llm, os.path.join("prompts", "search_compress.txt"), "output")
+default_chain = create_chain(llm, os.path.join("prompts", "default_response.txt"), "output")
 
 _db = Chroma(
     persist_directory=CHROMA_PERSIST_DIR,
@@ -85,6 +87,7 @@ search_tool = Tool(
 )
 
 HISTORY_DIR = os.path.join("chat_histories")
+KAKAO_INTENT_FILE = os.path.join("prompts", "kakao_intent.txt")
 
 
 def upload_embedding_from_file(file_path):
@@ -151,13 +154,24 @@ def generate_answer(user_message, conversation_id: str = 'fa1010') -> dict[str, 
     context["input"] = context["user_message"]
     context["chat_history"] = get_chat_history(conversation_id)
 
-    context["related_documents"] = query_db(context["user_message"])
+    context["related_documents"] = query_db(context["user_message"], True)
+    context["intent_list"] = read_prompt_template(KAKAO_INTENT_FILE)
+
+    intent = parse_intent_chain.run(context)
+    print(f"intent: {intent}")
 
     answer = ""
-    for step in [chain1]:
-        context = step(context)
-        answer += context[step.output_key]
-        answer += "\n\n"
+
+    if "kakao" in intent:
+        for step in [chain1]:
+            context = step(context)
+            answer += context[step.output_key]
+            answer += "\n\n"
+    else:
+        context["compressed_web_search_results"] = query_web_search(
+            context["user_message"]
+        )
+        answer = default_chain.run(context)
 
     log_user_message(history_file, user_message)
     log_bot_message(history_file, answer)

@@ -1,0 +1,3 @@
+kakaosync: Kakao Sync is a business solution that helps you sign up for services more conveniently through Kakao Login, a social login.
+kakaotalk_channel: KakaoTalk Channel (formerly known as Plus Friend) is a service that disseminates various service news to KakaoTalk users in the form of messages and posts.
+kakaosocial: KakaoTalk Social API provides the user's KakaoTalk profile and friend information to implement the service's social features.
