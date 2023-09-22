@@ -1,9 +1,10 @@
-"""Welcome to Pynecone! This file outlines the steps to create a basic app."""
+"""Welcome to Reflex! This file outlines the steps to create a basic app."""
 from langchain.text_splitter import CharacterTextSplitter
-from pcconfig import config
+from rxconfig import config
 
-import os.path
-import pynecone as pc
+import os
+import reflex as rx
+import openai
 from datetime import datetime
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
@@ -17,13 +18,15 @@ from langchain.prompts.chat import ChatPromptTemplate
 from langchain.utilities import GoogleSearchAPIWrapper
 from langchain.memory import ConversationBufferMemory, FileChatMessageHistory
 from langchain.document_loaders import TextLoader
+from dotenv import load_dotenv
 
+load_dotenv()
 
-import os
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 search = GoogleSearchAPIWrapper(
-    google_api_key=os.getenv("GOOGLE_API_KEY", os.environ["GOOGLE_API_KEY"]),
-    google_cse_id=os.getenv("GOOGLE_CSE_ID", os.environ["GOOGLE_CSE_ID"])
+    google_api_key=os.getenv("GOOGLE_API_KEY"),
+    google_cse_id=os.getenv("GOOGLE_CSE_ID")
 )
 
 chat_file = os.path.join("hist.json")
@@ -161,12 +164,12 @@ def generate_answer(user_message, conversation_id: str = 'fa1010') -> dict[str, 
     return {"answer": answer}
 
 
-class Message(pc.Model):
+class Message(rx.Model):
     text: str = ""
     created_at: str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    me: int = 0
+    me: bool = False
 
-    def __init__(self, text: str, me: int):
+    def __init__(self, text: str, me: bool):
         super().__init__()
         self.text = text
         self.me = me
@@ -175,7 +178,7 @@ class Message(pc.Model):
         return "(" + self.text + "-" + str(self.me) + ")"
 
 
-class State(pc.State):
+class State(rx.State):
     """The app state."""
     text: str = ""
     messages: list[Message] = []
@@ -184,13 +187,13 @@ class State(pc.State):
         q = self.text
         print(f"Q: {q}")
 
-        m = Message(q, 1)
+        m = Message(q, True)
         self.messages += [m]
         self.text = ""
         yield
 
         answer = generate_answer(q)
-        msg = Message(answer["answer"], 0)
+        msg = Message(answer["answer"], False)
 
         print(f"A: {msg.text}")
         self.messages += [msg]
@@ -199,30 +202,44 @@ class State(pc.State):
 
 
 def render_message(m: Message):
-    return pc.box(m.text,
-                  text_align="right" if m.me == 1 else "left",
-                  style=style.question_style if m.me == 1 else style.answer_style,
-                  margin_y="1em"
-                  )
+    return rx.cond(
+        m.me,
+        rx.box(
+            rx.box(m.text,
+                   text_align="right",
+                   style=style.question_style,
+                   margin_y="1em"
+                   ),
+            text_align="right"
+        ),
+        rx.box(
+            rx.box(m.text,
+                   text_align="left",
+                   style=style.answer_style,
+                   margin_y="1em"
+                   )
+        )
+    )
 
 
-def chat() -> pc.Component:
-    return pc.box(
-        pc.foreach(State.messages, lambda msg: render_message(msg)),
+def chat() -> rx.Component:
+    return rx.box(
+        rx.foreach(State.messages, lambda msg: render_message(msg)),
         width="100%",
+        style=style.frame_style
     )
 
 
-def action_bar() -> pc.Component:
-    return pc.hstack(
-        pc.input(placeholder="text to send", on_blur=State.set_text, style=style.input_style),
-        pc.button("Send", on_click=State.send, style=style.input_style),
+def action_bar() -> rx.Component:
+    return rx.hstack(
+        rx.input(placeholder="text to send", on_blur=State.set_text, style=style.input_style),
+        rx.button("Send", on_click=State.send, style=style.input_style),
     )
 
 
-def index() -> pc.Component:
-    return pc.container(
-        pc.vstack(
+def index() -> rx.Component:
+    return rx.container(
+        rx.vstack(
             chat(),
             action_bar()
         ),
@@ -232,6 +249,6 @@ def index() -> pc.Component:
 
 
 # Add state and page to the app.
-app = pc.App(state=State)
+app = rx.App(state=State)
 app.add_page(index)
 app.compile()
